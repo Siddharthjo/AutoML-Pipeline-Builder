@@ -36,23 +36,6 @@ A full-stack web application that automates the entire machine learning pipeline
 
 ---
 
-##  Project Structure
-
-AutoML-Pipeline-Builder/
-├── frontend/                  # React + TypeScript app
-│   ├── src/components/        # Upload, Preview, Training, Results
-│   ├── src/hooks/             # State management (useAutoML)
-│   └── src/utils/             # CSV parsing, metric simulation
-├── backend/                   # FastAPI backend
-│   ├── main.py                # API endpoints
-│   └── utils/
-│       ├── data_cleaning.py   # Preprocessing
-│       ├── model_training.py  # AutoML logic
-│       └── evaluation.py      # Metrics and visualization
-└── README.md
-
----
-
 ##  App Workflow
 
 1. **Upload CSV**
