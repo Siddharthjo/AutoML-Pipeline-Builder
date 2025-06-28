@@ -1,263 +1,190 @@
-# AutoML Pipeline Builder
+#  AutoML Pipeline Builder
 
-A comprehensive web application that automatically builds machine learning pipelines from CSV datasets. Upload your data, let AI handle the preprocessing, model selection, and training, then download your trained model and analysis report.
+A full-stack web application that automates the entire machine learning pipeline. Upload your dataset and receive a trained model, performance metrics, and a complete analysis report — without writing a single line of code.
 
-## Features
+---
 
-- **Automatic Data Analysis**: Upload CSV files and get instant data quality insights
-- **Intelligent Preprocessing**: Handles missing values, categorical encoding, and feature scaling
-- **Problem Type Detection**: Automatically determines if your problem is classification or regression
-- **AutoML Integration**: Uses Auto-sklearn or TPOT for automated model selection and hyperparameter tuning
-- **Comprehensive Evaluation**: Generates performance metrics and visualizations
-- **Easy Export**: Download trained models (.pkl) and detailed HTML reports
+##  Features
 
-## Tech Stack
+- 📂 Upload CSV datasets with instant validation
+- 🔍 Auto-detect data types and problem type (classification/regression)
+- 🧹 Automated data preprocessing (missing value imputation, encoding, scaling)
+- ⚙️ Smart model selection using AutoML (Auto-sklearn / TPOT)
+- 📈 Performance metrics and visualizations (ROC, Confusion Matrix, etc.)
+- 📝 Download trained models and HTML reports
+- 🔄 Real-time progress updates & intuitive UI
 
-### Backend
-- **FastAPI**: Modern, fast web framework for building APIs
-- **Auto-sklearn/TPOT**: AutoML libraries for automated model selection
-- **Pandas**: Data manipulation and analysis
-- **Scikit-learn**: Machine learning algorithms and utilities
-- **Matplotlib/Seaborn**: Data visualization
-- **ydata-profiling**: Automated EDA report generation
+---
 
-### Frontend
-- **React**: Modern JavaScript library for building user interfaces
-- **TypeScript**: Type-safe JavaScript development
-- **Tailwind CSS**: Utility-first CSS framework
-- **Lucide React**: Beautiful, customizable icons
+##  Architecture
 
-## Installation
+### Frontend: `React + TypeScript`
+- **React 18**: Component-based UI
+- **TypeScript**: Type-safe development
+- **Tailwind CSS**: Utility-first responsive styling
+- **Vite**: Fast build tool
+- **Lucide React**: Consistent icons
 
-### Prerequisites
-- Node.js (v16 or higher)
-- Python (v3.8 or higher)
-- Git
+### Backend: `Python + FastAPI`
+- **FastAPI**: High-performance REST API
+- **Uvicorn**: ASGI server
+- **Pandas, NumPy**: Data handling
+- **Scikit-learn**: ML preprocessing & base models
+- **Auto-sklearn / TPOT**: Automated model optimization
+- **Matplotlib, Seaborn**: Visualization
+- **Jinja2**: HTML templating for reports
 
-### Backend Setup
+---
 
-1. **Clone the repository**
-   ```bash
-   git clone <repository-url>
-   cd automl-pipeline-builder
-   ```
+##  Project Structure
 
-2. **Set up Python virtual environment**
-   ```bash
-   cd backend
-   python -m venv venv
-   
-   # On Windows
-   venv\Scripts\activate
-   
-   # On macOS/Linux
-   source venv/bin/activate
-   ```
+AutoML-Pipeline-Builder/
+├── frontend/                  # React + TypeScript app
+│   ├── src/components/        # Upload, Preview, Training, Results
+│   ├── src/hooks/             # State management (useAutoML)
+│   └── src/utils/             # CSV parsing, metric simulation
+├── backend/                   # FastAPI backend
+│   ├── main.py                # API endpoints
+│   └── utils/
+│       ├── data_cleaning.py   # Preprocessing
+│       ├── model_training.py  # AutoML logic
+│       └── evaluation.py      # Metrics and visualization
+└── README.md
 
-3. **Install Python dependencies**
-   ```bash
-   pip install -r requirements.txt
-   ```
+---
 
-4. **Start the FastAPI server**
-   ```bash
-   python main.py
-   ```
+##  App Workflow
 
-   The API will be available at `http://localhost:8000`
+1. **Upload CSV**
+2. **Auto Detect Columns & Data Types**
+3. **Problem Type Detection**
+4. **Data Cleaning (imputation, encoding, scaling)**
+5. **Model Training via AutoML (Auto-sklearn → TPOT → fallback)**
+6. **Evaluation + Visual Report**
+7. **Download Model and Report**
 
-### Frontend Setup
+---
 
-1. **Install Node.js dependencies**
-   ```bash
-   npm install
-   ```
+##  Core Logic
 
-2. **Start the development server**
-   ```bash
-   npm run dev
-   ```
-
-   The application will be available at `http://localhost:5173`
-
-## Usage
-
-### Quick Start
-
-1. **Upload Dataset**: Click "Choose CSV File" or drag & drop your CSV file
-2. **Preview Data**: Review your dataset structure and column information
-3. **Start Analysis**: Click "Start AutoML Analysis" to begin the automated pipeline
-4. **Monitor Progress**: Watch the real-time progress of data cleaning, model training, and evaluation
-5. **Download Results**: Get your trained model (.pkl) and analysis report (.html)
-
-### Dataset Requirements
-
-- **Format**: CSV files only
-- **Structure**: First row should contain column headers
-- **Size**: At least 2 columns (features + target)
-- **Target**: The last column is automatically detected as the target variable
-
-### Sample Datasets
-
-Two sample datasets are included in the `sample_data/` directory:
-
-- `classification_sample.csv`: Iris flower classification dataset
-- `regression_sample.csv`: House price prediction dataset
-
-## API Documentation
-
-### Endpoints
-
-- `POST /upload`: Upload CSV file and validate dataset
-- `GET /preview/{job_id}`: Get dataset preview and statistics
-- `POST /analyze/{job_id}`: Start AutoML analysis pipeline
-- `GET /status/{job_id}`: Check analysis progress
-- `GET /results/{job_id}`: Get final results and metrics
-- `GET /download/model/{job_id}`: Download trained model
-- `GET /download/report/{job_id}`: Download analysis report
-
-### WebSocket Support
-
-Real-time updates are provided through HTTP polling. The frontend automatically polls the status endpoint every 2 seconds during analysis.
-
-## Model Types
-
-### Classification
-- **Algorithms**: Random Forest, Logistic Regression, SVM, and more via AutoML
-- **Metrics**: Accuracy, Precision, Recall, F1-Score, AUC-ROC
-- **Visualizations**: Confusion Matrix, ROC Curve, Prediction Distribution
-
-### Regression
-- **Algorithms**: Random Forest, Linear Regression, SVR, and more via AutoML
-- **Metrics**: R² Score, RMSE, MAE, MAPE
-- **Visualizations**: Actual vs Predicted, Residual Plots, Distribution Comparison
-
-## Data Preprocessing
-
-The pipeline automatically handles:
-
-- **Missing Values**: Imputation using median (numerical) or mode (categorical)
-- **Categorical Encoding**: One-hot encoding for low cardinality, label encoding for high cardinality
-- **Feature Scaling**: StandardScaler for numerical features
-- **Data Validation**: Type checking, empty dataset detection, minimum column requirements
-
-## AutoML Integration
-
-### Auto-sklearn (Preferred)
-- Automated algorithm selection and hyperparameter optimization
-- Ensemble methods for improved performance
-- Built-in cross-validation and model evaluation
-
-### TPOT (Fallback)
-- Genetic programming approach to AutoML
-- Pipeline optimization including feature selection
-- Scikit-learn compatible models
-
-### Traditional ML (Fallback)
-- Grid search over multiple algorithms
-- Random Forest, Logistic Regression, SVM
-- Basic hyperparameter tuning
-
-## Deployment
-
-### Local Development
-```bash
-# Terminal 1 - Backend
-cd backend
-python main.py
-
-# Terminal 2 - Frontend
-npm run dev
-```
-
-### Production Deployment
-
-#### Docker (Recommended)
-```bash
-# Build and run with Docker Compose
-docker-compose up --build
-```
-
-#### Render/Railway
-1. Deploy backend as a Python web service
-2. Deploy frontend as a static site
-3. Configure CORS settings for production URLs
-
-#### Hugging Face Spaces
-1. Create a new Space with Gradio/Streamlit SDK
-2. Upload backend code
-3. Configure requirements.txt
-4. Deploy automatically
-
-## Configuration
-
-### Environment Variables
-
-Create a `.env` file in the backend directory:
-
-```env
-# API Configuration
-API_HOST=0.0.0.0
-API_PORT=8000
-
-# CORS Settings
-CORS_ORIGINS=["http://localhost:5173", "http://localhost:3000"]
-
-# AutoML Settings
-AUTOML_TIME_LIMIT=300  # seconds
-AUTOML_MEMORY_LIMIT=3072  # MB
-
-# File Upload Settings
-MAX_FILE_SIZE=100  # MB
-UPLOAD_DIRECTORY=uploads/
-```
-
-### Model Configuration
-
-Modify AutoML settings in `backend/utils/model_training.py`:
-
+### Data Type Detection
 ```python
-# Auto-sklearn settings
-time_left_for_this_task=300,  # 5 minutes
-per_run_time_limit=30,        # 30 seconds per model
-memory_limit=3072,            # 3GB RAM
+def detect_data_types(headers, rows):
+    # Infer numerical, categorical, or mixed types
 
-# TPOT settings
-generations=5,                # Number of iterations
-population_size=20,           # Models per generation
-max_time_mins=5,              # Maximum time
-```
+Problem Type Detection
 
-## Troubleshooting
+def detect_problem_type(target_values):
+    if categorical: return 'classification'
+    else: return 'regression'
 
-### Common Issues
+Preprocessing Pipeline
 
-1. **AutoML Library Installation**
-   ```bash
-   # If auto-sklearn fails to install
-   pip install auto-sklearn --no-deps
-   pip install scikit-learn==1.3.2
-   ```
+class DataCleaner:
+    # Imputation, encoding, scaling
 
-2. **Memory Issues**
-   - Reduce dataset size for large files
-   - Increase system memory allocation
-   - Use traditional ML fallback instead
+AutoML Model Selection
 
-3. **CORS Errors**
-   - Check frontend/backend URLs match
-   - Verify CORS_ORIGINS configuration
-   - Ensure both servers are running
+if auto_sklearn_available:
+    use_auto_sklearn()
+elif tpot_available:
+    use_tpot()
+else:
+    fallback_to_gridsearch()
 
-4. **File Upload Issues**
-   - Verify CSV format and encoding
-   - Check file size limits
-   - Ensure proper column headers
 
-### Performance Optimization
+⸻
 
-- **Dataset Size**: Optimal size is 1K-100K rows
-- **Feature Count**: Works best with 5-50 features
-- **Time Limits**: Adjust AutoML time limits based on dataset size
-- **Memory Usage**: Monitor system resources during training
+ Mock vs Production
 
+Feature	Mock Mode	Production Mode
+Data Parsing	Client-side JS	FastAPI server-side
+AutoML Training	Simulated (JS)	Real model training (Python)
+Metrics Display	Random values	True metrics & plots
+Model Download	Placeholder .pkl	Trained .pkl file
+
+
+⸻
+
+ Setup & Run
+
+Prerequisites
+	•	Node.js ≥ 18
+	•	Python ≥ 3.9
+	•	pip, virtualenv
+	•	Optional: Docker
+
+Clone Repo
+
+git clone https://github.com/your-username/automl-pipeline-builder.git
+cd automl-pipeline-builder
+
+Run Backend
+
+cd backend
+python -m venv venv
+source venv/bin/activate  # or venv\Scripts\activate on Windows
+pip install -r requirements.txt
+uvicorn main:app --reload
+
+Run Frontend
+
+cd frontend
+npm install
+npm run dev
+
+
+⸻
+
+ Environment Variables
+
+Create a .env file in backend/ (optional for API keys or S3):
+
+MODEL_STORAGE_PATH=models/
+ENABLE_AUTO_SKLEARN=True
+ENABLE_TPOT=True
+
+
+⸻
+
+ Future Improvements
+	•	Plotly interactive charts
+	•	Dataset profiling with ydata-profiling
+	•	SHAP/LIME model explainability
+	•	Multi-file dataset support
+	•	Cloud deployment via Docker/Kubernetes
+
+⸻
+
+
+ Contributing
+
+PRs are welcome! Please open an issue first to discuss changes or improvements.
+
+⸻
+
+ License
+
+MIT License © 2025 Your Name
+
+⸻
+
+ Contact
+
+For feedback, feature requests, or bugs, open an issue or reach out at youremail@example.com.
+
+---
+
+###  What to do next:
+
+- Replace the screenshot links with your real image URLs (e.g., from Imgur or GitHub assets).
+- Replace `your-username`, `youremail@example.com`, and repo links with your real GitHub info.
+- Add this to your repository root as `README.md`.
+
+Let me know if you want:
+- A logo or banner image for the top
+- Shields/badges (build, license, etc.)
+- Docker deployment section  
+- GitHub Pages or Vercel deployment steps for frontend
+
+Want me to generate the `requirements.txt`, `docker-compose.yml`, or API schema too?
