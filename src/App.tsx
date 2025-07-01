@@ -20,6 +20,10 @@ function App() {
     pollStatus,
     downloadModel,
     downloadReport,
+    downloadCleanedData,
+    downloadMetrics,
+    downloadConfig,
+    downloadAll,
     reset,
   } = useAutoML();
 
@@ -79,6 +83,42 @@ function App() {
       await downloadReport(jobId);
     } catch (err) {
       console.error('Report download failed:', err);
+    }
+  };
+
+  const handleDownloadCleanedData = async () => {
+    if (!jobId) return;
+    try {
+      await downloadCleanedData(jobId);
+    } catch (err) {
+      console.error('Cleaned data download failed:', err);
+    }
+  };
+
+  const handleDownloadMetrics = async () => {
+    if (!jobId) return;
+    try {
+      await downloadMetrics(jobId);
+    } catch (err) {
+      console.error('Metrics download failed:', err);
+    }
+  };
+
+  const handleDownloadConfig = async () => {
+    if (!jobId) return;
+    try {
+      await downloadConfig(jobId);
+    } catch (err) {
+      console.error('Configuration download failed:', err);
+    }
+  };
+
+  const handleDownloadAll = async () => {
+    if (!jobId) return;
+    try {
+      await downloadAll(jobId);
+    } catch (err) {
+      console.error('ZIP download failed:', err);
     }
   };
 
@@ -189,6 +229,10 @@ function App() {
             results={results}
             onDownloadModel={handleDownloadModel}
             onDownloadReport={handleDownloadReport}
+            onDownloadCleanedData={handleDownloadCleanedData}
+            onDownloadMetrics={handleDownloadMetrics}
+            onDownloadConfig={handleDownloadConfig}
+            onDownloadAll={handleDownloadAll}
           />
         )}
       </main>
@@ -198,7 +242,7 @@ function App() {
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
           <div className="text-center text-sm text-gray-600">
             <p>AutoML Pipeline Builder - Automated Machine Learning Made Simple</p>
-            <p className="mt-1">Upload your data, let AI do the work, download your model.</p>
+            <p className="mt-1">Upload your data, let AI do the work, download comprehensive outputs.</p>
           </div>
         </div>
       </footer>

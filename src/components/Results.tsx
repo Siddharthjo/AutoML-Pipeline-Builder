@@ -6,7 +6,10 @@ import {
   BarChart3, 
   FileText,
   Target,
-  Zap
+  Zap,
+  Database,
+  Settings,
+  Package
 } from 'lucide-react';
 import { MLResults } from '../types/ml';
 
@@ -14,12 +17,20 @@ interface ResultsProps {
   results: MLResults;
   onDownloadModel: () => void;
   onDownloadReport: () => void;
+  onDownloadCleanedData?: () => void;
+  onDownloadMetrics?: () => void;
+  onDownloadConfig?: () => void;
+  onDownloadAll?: () => void;
 }
 
 export const Results: React.FC<ResultsProps> = ({
   results,
   onDownloadModel,
   onDownloadReport,
+  onDownloadCleanedData,
+  onDownloadMetrics,
+  onDownloadConfig,
+  onDownloadAll,
 }) => {
   const formatMetric = (key: string, value: number) => {
     if (key.includes('score') || key.includes('accuracy') || key.includes('precision') || key.includes('recall') || key.includes('f1')) {
@@ -159,7 +170,7 @@ export const Results: React.FC<ResultsProps> = ({
                 </h4>
                 <div className="bg-white rounded border border-gray-200 p-2">
                   <div className="text-sm text-gray-600 text-center py-8">
-                    Visualization available in downloaded report
+                    Visualization available in downloaded files
                   </div>
                 </div>
               </div>
@@ -170,14 +181,16 @@ export const Results: React.FC<ResultsProps> = ({
 
       {/* Download Actions */}
       <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
-        <h3 className="text-lg font-semibold text-gray-900 mb-4">Download Results</h3>
-        <div className="flex flex-col sm:flex-row gap-4">
+        <h3 className="text-lg font-semibold text-gray-900 mb-6">📦 Download Pipeline Outputs</h3>
+        
+        {/* Primary Downloads */}
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
           <button
             onClick={onDownloadModel}
             className="flex items-center justify-center space-x-2 px-6 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
           >
             <Download className="h-4 w-4" />
-            <span>Download Model (.pkl)</span>
+            <span>Trained Model (.pkl)</span>
           </button>
           
           <button
@@ -185,17 +198,68 @@ export const Results: React.FC<ResultsProps> = ({
             className="flex items-center justify-center space-x-2 px-6 py-3 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors"
           >
             <FileText className="h-4 w-4" />
-            <span>Download Report (.html)</span>
+            <span>Analysis Report (.html)</span>
           </button>
         </div>
-        
-        <div className="mt-4 text-sm text-gray-600">
-          <p>
-            <strong>Model file:</strong> Use this .pkl file to make predictions on new data using Python and scikit-learn.
-          </p>
-          <p className="mt-1">
-            <strong>Report file:</strong> Contains detailed analysis, visualizations, and model performance metrics.
-          </p>
+
+        {/* Additional Downloads */}
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-3 mb-6">
+          {onDownloadCleanedData && (
+            <button
+              onClick={onDownloadCleanedData}
+              className="flex items-center justify-center space-x-2 px-4 py-2 bg-gray-100 text-gray-700 rounded-lg hover:bg-gray-200 transition-colors text-sm"
+            >
+              <Database className="h-4 w-4" />
+              <span>Cleaned Data</span>
+            </button>
+          )}
+          
+          {onDownloadMetrics && (
+            <button
+              onClick={onDownloadMetrics}
+              className="flex items-center justify-center space-x-2 px-4 py-2 bg-gray-100 text-gray-700 rounded-lg hover:bg-gray-200 transition-colors text-sm"
+            >
+              <BarChart3 className="h-4 w-4" />
+              <span>Metrics (.json)</span>
+            </button>
+          )}
+          
+          {onDownloadConfig && (
+            <button
+              onClick={onDownloadConfig}
+              className="flex items-center justify-center space-x-2 px-4 py-2 bg-gray-100 text-gray-700 rounded-lg hover:bg-gray-200 transition-colors text-sm"
+            >
+              <Settings className="h-4 w-4" />
+              <span>Configuration</span>
+            </button>
+          )}
+          
+          {onDownloadAll && (
+            <button
+              onClick={onDownloadAll}
+              className="flex items-center justify-center space-x-2 px-4 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700 transition-colors text-sm"
+            >
+              <Package className="h-4 w-4" />
+              <span>All Files (.zip)</span>
+            </button>
+          )}
+        </div>
+
+        {/* Download Descriptions */}
+        <div className="bg-gray-50 rounded-lg p-4">
+          <h4 className="font-medium text-gray-900 mb-3">Output Descriptions:</h4>
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm text-gray-600">
+            <div>
+              <p><strong>Trained Model:</strong> Serialized .pkl file for production use</p>
+              <p><strong>Analysis Report:</strong> Comprehensive HTML report with visualizations</p>
+              <p><strong>Cleaned Data:</strong> Preprocessed dataset ready for analysis</p>
+            </div>
+            <div>
+              <p><strong>Metrics:</strong> Machine-readable performance metrics (JSON)</p>
+              <p><strong>Configuration:</strong> Pipeline settings and model parameters</p>
+              <p><strong>All Files:</strong> Complete ZIP archive with all outputs</p>
+            </div>
+          </div>
         </div>
       </div>
 
@@ -203,6 +267,9 @@ export const Results: React.FC<ResultsProps> = ({
       <div className="bg-gray-50 rounded-lg p-4 text-center">
         <p className="text-sm text-gray-600">
           Analysis completed on {new Date(results.completed_at).toLocaleString()}
+        </p>
+        <p className="text-xs text-gray-500 mt-1">
+          All outputs are production-ready and include full documentation
         </p>
       </div>
     </div>

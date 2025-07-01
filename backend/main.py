@@ -14,6 +14,7 @@ from pathlib import Path
 from utils.data_cleaning import DataCleaner
 from utils.model_training import AutoMLTrainer
 from utils.evaluation import ModelEvaluator
+from utils.output_generator import OutputGenerator
 
 app = FastAPI(title="AutoML Pipeline Builder", version="1.0.0")
 
@@ -30,8 +31,9 @@ app.add_middleware(
 UPLOAD_DIR = Path("uploads")
 MODELS_DIR = Path("models")
 REPORTS_DIR = Path("reports")
+OUTPUTS_DIR = Path("outputs")
 
-for dir_path in [UPLOAD_DIR, MODELS_DIR, REPORTS_DIR]:
+for dir_path in [UPLOAD_DIR, MODELS_DIR, REPORTS_DIR, OUTPUTS_DIR]:
     dir_path.mkdir(exist_ok=True)
 
 # In-memory storage for job status (use Redis in production)
@@ -155,7 +157,7 @@ async def run_automl_pipeline(job_id: str):
         job_status[job_id]["current_step"] = "Problem Detection"
         job_status[job_id]["progress"] = 20
         
-        problem_type = cleaner.detect_problem_type(cleaned_data["target_column"])
+        problem_type = cleaner.detect_problem_type(cleaned_data["y"])
         job_status[job_id]["problem_type"] = problem_type
         
         # Step 3: AutoML Training
@@ -172,7 +174,7 @@ async def run_automl_pipeline(job_id: str):
         
         # Step 4: Model Evaluation
         job_status[job_id]["current_step"] = "Model Evaluation"
-        job_status[job_id]["progress"] = 80
+        job_status[job_id]["progress"] = 60
         
         evaluator = ModelEvaluator()
         evaluation_results = evaluator.evaluate_model(
@@ -183,22 +185,52 @@ async def run_automl_pipeline(job_id: str):
             job_id
         )
         
-        # Step 5: Generate Report
-        job_status[job_id]["current_step"] = "Generating Report"
-        job_status[job_id]["progress"] = 95
+        # Step 5: Generate All Outputs
+        job_status[job_id]["current_step"] = "Generating Outputs"
+        job_status[job_id]["progress"] = 80
         
-        report_path = await generate_report(job_id, cleaned_data, model_results, evaluation_results)
+        output_generator = OutputGenerator(job_id)
         
-        # Complete
-        job_status[job_id]["status"] = "completed"
+        # Get predictions for output generation
+        y_pred = model_results["model"].predict(model_results["X_test"])
+        y_pred_proba = None
+        if hasattr(model_results["model"], 'predict_proba'):
+            y_pred_proba = model_results["model"].predict_proba(model_results["X_test"])
+        
+        # Define preprocessing steps
+        preprocessing_steps = [
+            "Missing value imputation",
+            "Categorical encoding",
+            "Feature scaling",
+            "Data type optimization"
+        ]
+        
+        # Generate all outputs
+        all_outputs = output_generator.generate_all_outputs(
+            model=model_results["model"],
+            X_train=model_results["X_train"],
+            X_test=model_results["X_test"],
+            y_train=model_results["y_train"],
+            y_test=model_results["y_test"],
+            y_pred=y_pred,
+            y_pred_proba=y_pred_proba,
+            cleaned_data=cleaned_data,
+            metrics=evaluation_results["metrics"],
+            problem_type=problem_type,
+            preprocessing_steps=preprocessing_steps
+        )
+        
+        # Step 6: Complete
+        job_status[job_id]["current_step"] = "Complete"
         job_status[job_id]["progress"] = 100
+        job_status[job_id]["status"] = "completed"
         job_status[job_id]["results"] = {
             "model_path": model_results["model_path"],
             "metrics": evaluation_results["metrics"],
             "visualizations": evaluation_results["visualizations"],
-            "report_path": report_path,
             "problem_type": problem_type,
-            "completed_at": datetime.now().isoformat()
+            "completed_at": datetime.now().isoformat(),
+            "outputs": all_outputs
         }
         
     except Exception as e:
@@ -230,7 +262,12 @@ async def download_model(job_id: str):
     if job_id not in job_status or job_status[job_id]["status"] != "completed":
         raise HTTPException(status_code=404, detail="Model not found")
     
-    model_path = job_status[job_id]["results"]["model_path"]
+    outputs = job_status[job_id]["results"]["outputs"]
+    model_path = outputs.get("model")
+    
+    if not model_path or not Path(model_path).exists():
+        raise HTTPException(status_code=404, detail="Model file not found")
+    
     return FileResponse(model_path, filename=f"model_{job_id}.pkl")
 
 @app.get("/download/report/{job_id}")
@@ -239,73 +276,69 @@ async def download_report(job_id: str):
     if job_id not in job_status or job_status[job_id]["status"] != "completed":
         raise HTTPException(status_code=404, detail="Report not found")
     
-    report_path = job_status[job_id]["results"]["report_path"]
+    outputs = job_status[job_id]["results"]["outputs"]
+    report_path = outputs.get("report")
+    
+    if not report_path or not Path(report_path).exists():
+        raise HTTPException(status_code=404, detail="Report file not found")
+    
     return FileResponse(report_path, filename=f"report_{job_id}.html")
 
-async def generate_report(job_id: str, cleaned_data: Dict, model_results: Dict, evaluation_results: Dict) -> str:
-    """Generate HTML report"""
-    from jinja2 import Template
+@app.get("/download/cleaned-data/{job_id}")
+async def download_cleaned_data(job_id: str):
+    """Download cleaned dataset"""
+    if job_id not in job_status or job_status[job_id]["status"] != "completed":
+        raise HTTPException(status_code=404, detail="Cleaned data not found")
     
-    template_str = """
-    <!DOCTYPE html>
-    <html>
-    <head>
-        <title>AutoML Analysis Report</title>
-        <style>
-            body { font-family: Arial, sans-serif; margin: 20px; }
-            .header { background: #f4f4f4; padding: 20px; border-radius: 8px; }
-            .section { margin: 20px 0; }
-            .metric { display: inline-block; margin: 10px; padding: 10px; background: #e8f4f8; border-radius: 4px; }
-            table { border-collapse: collapse; width: 100%; }
-            th, td { border: 1px solid #ddd; padding: 8px; text-align: left; }
-            th { background-color: #f2f2f2; }
-        </style>
-    </head>
-    <body>
-        <div class="header">
-            <h1>AutoML Analysis Report</h1>
-            <p>Generated on: {{ timestamp }}</p>
-            <p>Problem Type: {{ problem_type }}</p>
-        </div>
-        
-        <div class="section">
-            <h2>Dataset Information</h2>
-            <p>Shape: {{ shape }}</p>
-            <p>Features: {{ n_features }}</p>
-        </div>
-        
-        <div class="section">
-            <h2>Model Performance</h2>
-            {% for metric, value in metrics.items() %}
-            <div class="metric">
-                <strong>{{ metric }}:</strong> {{ value }}
-            </div>
-            {% endfor %}
-        </div>
-        
-        <div class="section">
-            <h2>Best Model</h2>
-            <p>{{ best_model }}</p>
-        </div>
-    </body>
-    </html>
-    """
+    outputs = job_status[job_id]["results"]["outputs"]
+    data_path = outputs.get("cleaned_data")
     
-    template = Template(template_str)
-    html_content = template.render(
-        timestamp=datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
-        problem_type=job_status[job_id]["problem_type"],
-        shape=f"{cleaned_data['X'].shape[0]} rows × {cleaned_data['X'].shape[1]} columns",
-        n_features=cleaned_data['X'].shape[1],
-        metrics=evaluation_results["metrics"],
-        best_model=str(model_results["model"])
-    )
+    if not data_path or not Path(data_path).exists():
+        raise HTTPException(status_code=404, detail="Cleaned data file not found")
     
-    report_path = REPORTS_DIR / f"report_{job_id}.html"
-    with open(report_path, "w") as f:
-        f.write(html_content)
+    return FileResponse(data_path, filename=f"cleaned_data_{job_id}.csv")
+
+@app.get("/download/metrics/{job_id}")
+async def download_metrics(job_id: str):
+    """Download metrics summary"""
+    if job_id not in job_status or job_status[job_id]["status"] != "completed":
+        raise HTTPException(status_code=404, detail="Metrics not found")
     
-    return str(report_path)
+    outputs = job_status[job_id]["results"]["outputs"]
+    metrics_path = outputs.get("metrics")
+    
+    if not metrics_path or not Path(metrics_path).exists():
+        raise HTTPException(status_code=404, detail="Metrics file not found")
+    
+    return FileResponse(metrics_path, filename=f"metrics_{job_id}.json")
+
+@app.get("/download/config/{job_id}")
+async def download_pipeline_config(job_id: str):
+    """Download pipeline configuration"""
+    if job_id not in job_status or job_status[job_id]["status"] != "completed":
+        raise HTTPException(status_code=404, detail="Configuration not found")
+    
+    outputs = job_status[job_id]["results"]["outputs"]
+    config_path = outputs.get("pipeline_config")
+    
+    if not config_path or not Path(config_path).exists():
+        raise HTTPException(status_code=404, detail="Configuration file not found")
+    
+    return FileResponse(config_path, filename=f"pipeline_config_{job_id}.json")
+
+@app.get("/download/all/{job_id}")
+async def download_all_outputs(job_id: str):
+    """Download all outputs as ZIP archive"""
+    if job_id not in job_status or job_status[job_id]["status"] != "completed":
+        raise HTTPException(status_code=404, detail="Outputs not found")
+    
+    outputs = job_status[job_id]["results"]["outputs"]
+    zip_path = outputs.get("zip_archive")
+    
+    if not zip_path or not Path(zip_path).exists():
+        raise HTTPException(status_code=404, detail="ZIP archive not found")
+    
+    return FileResponse(zip_path, filename=f"automl_outputs_{job_id}.zip")
 
 if __name__ == "__main__":
     import uvicorn

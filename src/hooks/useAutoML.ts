@@ -109,6 +109,74 @@ export const useAutoML = () => {
     }
   }, []);
 
+  const downloadCleanedData = useCallback(async (jobId: string) => {
+    try {
+      const blob = await apiClient.downloadCleanedData(jobId);
+      const url = window.URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `cleaned_data_${jobId}.csv`;
+      document.body.appendChild(a);
+      a.click();
+      window.URL.revokeObjectURL(url);
+      document.body.removeChild(a);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Cleaned data download failed');
+      throw err;
+    }
+  }, []);
+
+  const downloadMetrics = useCallback(async (jobId: string) => {
+    try {
+      const blob = await apiClient.downloadMetrics(jobId);
+      const url = window.URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `metrics_${jobId}.json`;
+      document.body.appendChild(a);
+      a.click();
+      window.URL.revokeObjectURL(url);
+      document.body.removeChild(a);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Metrics download failed');
+      throw err;
+    }
+  }, []);
+
+  const downloadConfig = useCallback(async (jobId: string) => {
+    try {
+      const blob = await apiClient.downloadConfig(jobId);
+      const url = window.URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `pipeline_config_${jobId}.json`;
+      document.body.appendChild(a);
+      a.click();
+      window.URL.revokeObjectURL(url);
+      document.body.removeChild(a);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Configuration download failed');
+      throw err;
+    }
+  }, []);
+
+  const downloadAll = useCallback(async (jobId: string) => {
+    try {
+      const blob = await apiClient.downloadAll(jobId);
+      const url = window.URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `automl_outputs_${jobId}.zip`;
+      document.body.appendChild(a);
+      a.click();
+      window.URL.revokeObjectURL(url);
+      document.body.removeChild(a);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'ZIP download failed');
+      throw err;
+    }
+  }, []);
+
   const reset = useCallback(() => {
     setJobId(null);
     setStatus(null);
@@ -131,6 +199,10 @@ export const useAutoML = () => {
     pollStatus,
     downloadModel,
     downloadReport,
+    downloadCleanedData,
+    downloadMetrics,
+    downloadConfig,
+    downloadAll,
     reset,
   };
 };

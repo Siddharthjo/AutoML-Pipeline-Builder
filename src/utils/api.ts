@@ -318,11 +318,18 @@ export class MLApiClient {
               current_step: 'Model Evaluation',
               problem_type: problemType
             });
+          } else if (elapsed < 8000) {
+            resolve({
+              status: 'running',
+              progress: 90,
+              current_step: 'Generating Outputs',
+              problem_type: problemType
+            });
           } else {
             resolve({
               status: 'completed',
               progress: 100,
-              current_step: 'Generating Report',
+              current_step: 'Complete',
               problem_type: problemType
             });
           }
@@ -377,6 +384,8 @@ export class MLApiClient {
               confusion_matrix: `/reports/confusion_matrix_${jobId}.png`,
               roc_curve: `/reports/roc_curve_${jobId}.png`,
               prediction_distribution: `/reports/prediction_distribution_${jobId}.png`,
+              feature_importance: `/reports/feature_importance_${jobId}.png`,
+              correlation_heatmap: `/reports/correlation_heatmap_${jobId}.png`,
               ...(problemType === 'regression' && {
                 actual_vs_predicted: `/reports/actual_vs_predicted_${jobId}.png`,
                 residuals: `/reports/residuals_${jobId}.png`
@@ -384,7 +393,15 @@ export class MLApiClient {
             },
             report_path: `/reports/report_${jobId}.html`,
             problem_type: problemType,
-            completed_at: new Date().toISOString()
+            completed_at: new Date().toISOString(),
+            outputs: {
+              model: `/outputs/${jobId}/model_${jobId}.pkl`,
+              cleaned_data: `/outputs/${jobId}/cleaned_data_${jobId}.csv`,
+              metrics: `/outputs/${jobId}/metrics_${jobId}.json`,
+              pipeline_config: `/outputs/${jobId}/pipeline_config_${jobId}.json`,
+              report: `/outputs/${jobId}/report_${jobId}.html`,
+              zip_archive: `/outputs/${jobId}/automl_outputs_${jobId}.zip`
+            }
           });
         }, 500);
       });
@@ -446,7 +463,7 @@ export class MLApiClient {
           </head>
           <body>
             <div class="header">
-              <h1>AutoML Analysis Report</h1>
+              <h1>🤖 AutoML Analysis Report</h1>
               <p>Generated on: ${new Date().toLocaleString()}</p>
             </div>
         `;
@@ -458,6 +475,16 @@ export class MLApiClient {
           const problemType = detectProblemType(targetColumn, targetValues);
           
           reportContent += `
+            <h2>📦 Pipeline Outputs Generated</h2>
+            <ul>
+              <li><strong>model.pkl</strong> - Trained machine learning model</li>
+              <li><strong>cleaned_data.csv</strong> - Preprocessed dataset</li>
+              <li><strong>metrics.json</strong> - Performance metrics summary</li>
+              <li><strong>pipeline_config.json</strong> - Configuration and parameters</li>
+              <li><strong>visualizations/</strong> - Charts and plots</li>
+              <li><strong>automl_outputs.zip</strong> - Complete archive</li>
+            </ul>
+            
             <h2>Dataset Information</h2>
             <p><strong>Shape:</strong> ${rows.length} rows × ${headers.length} columns</p>
             <p><strong>Problem Type:</strong> ${problemType}</p>
@@ -486,6 +513,15 @@ export class MLApiClient {
         }
         
         reportContent += `
+            <h2>📋 Output Summary</h2>
+            <p>This AutoML pipeline has generated a comprehensive set of outputs for production use:</p>
+            <ul>
+              <li>Serialized model ready for deployment</li>
+              <li>Cleaned and preprocessed dataset</li>
+              <li>Detailed performance metrics</li>
+              <li>Pipeline configuration for reproducibility</li>
+              <li>Visualizations for model interpretation</li>
+            </ul>
             <p><em>This is a demo report generated in the Bolt environment.</em></p>
           </body>
           </html>
@@ -504,6 +540,88 @@ export class MLApiClient {
       throw new Error(`Report download failed: ${response.statusText}`);
     }
 
+    return response.blob();
+  }
+
+  async downloadCleanedData(jobId: string): Promise<Blob> {
+    if (this.baseUrl.includes('localhost')) {
+      return new Promise((resolve) => {
+        const cachedData = this.datasetCache.get(jobId);
+        let csvContent = 'feature1,feature2,feature3,target\n5.1,3.5,1.4,A\n4.9,3.0,1.4,A\n';
+        
+        if (cachedData) {
+          const { headers, rows } = cachedData;
+          csvContent = headers.join(',') + '\n' + 
+            rows.slice(0, 10).map((row: any[]) => row.join(',')).join('\n');
+        }
+        
+        setTimeout(() => {
+          const mockData = new Blob([csvContent], { type: 'text/csv' });
+          resolve(mockData);
+        }, 500);
+      });
+    }
+
+    const response = await fetch(`${this.baseUrl}/download/cleaned-data/${jobId}`);
+    if (!response.ok) throw new Error(`Cleaned data download failed: ${response.statusText}`);
+    return response.blob();
+  }
+
+  async downloadMetrics(jobId: string): Promise<Blob> {
+    if (this.baseUrl.includes('localhost')) {
+      return new Promise((resolve) => {
+        const metrics = { accuracy: 0.85, precision: 0.84, recall: 0.86, f1_score: 0.85 };
+        const metricsJson = JSON.stringify(metrics, null, 2);
+        
+        setTimeout(() => {
+          const mockData = new Blob([metricsJson], { type: 'application/json' });
+          resolve(mockData);
+        }, 500);
+      });
+    }
+
+    const response = await fetch(`${this.baseUrl}/download/metrics/${jobId}`);
+    if (!response.ok) throw new Error(`Metrics download failed: ${response.statusText}`);
+    return response.blob();
+  }
+
+  async downloadConfig(jobId: string): Promise<Blob> {
+    if (this.baseUrl.includes('localhost')) {
+      return new Promise((resolve) => {
+        const config = {
+          job_id: jobId,
+          model_type: 'RandomForestClassifier',
+          preprocessing_steps: ['Missing value imputation', 'Categorical encoding', 'Feature scaling'],
+          timestamp: new Date().toISOString()
+        };
+        const configJson = JSON.stringify(config, null, 2);
+        
+        setTimeout(() => {
+          const mockData = new Blob([configJson], { type: 'application/json' });
+          resolve(mockData);
+        }, 500);
+      });
+    }
+
+    const response = await fetch(`${this.baseUrl}/download/config/${jobId}`);
+    if (!response.ok) throw new Error(`Configuration download failed: ${response.statusText}`);
+    return response.blob();
+  }
+
+  async downloadAll(jobId: string): Promise<Blob> {
+    if (this.baseUrl.includes('localhost')) {
+      return new Promise((resolve) => {
+        const zipContent = 'Mock ZIP archive containing all AutoML outputs';
+        
+        setTimeout(() => {
+          const mockData = new Blob([zipContent], { type: 'application/zip' });
+          resolve(mockData);
+        }, 500);
+      });
+    }
+
+    const response = await fetch(`${this.baseUrl}/download/all/${jobId}`);
+    if (!response.ok) throw new Error(`ZIP download failed: ${response.statusText}`);
     return response.blob();
   }
 
